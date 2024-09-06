@@ -1,6 +1,6 @@
 # Trading Strategies Playground
 
-This repository is playground for various trading strategies. The strategies include Simple Moving Average (SMA) Crossover, Buy-and-Hold, Funding Rate Arbitrage (FRA), Put-Call Parity Arbitrage (PCPA), and ARIMA forecasting.
+This repository is playground for various trading strategies. The strategies include Simple Moving Average (SMA) Crossover, Buy-and-Hold, Funding Rate Arbitrage (FRA), Put-Call Parity Arbitrage (PCPA), ARIMA forecasting, and a lot more.
 
 ## Strategies
 
