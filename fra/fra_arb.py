@@ -20,7 +20,7 @@ def import_funding_rate_data():
     funding_data2 = []
 
     # Read the CSV file
-    with open('Binance Funding Rate History_SOLUSDT Perpetual_2024-08-26.csv', mode='r') as csvfile:
+    with open('./fra/Binance Funding Rate History_SOLUSDT Perpetual_2024-08-26.csv', mode='r') as csvfile:
         reader = csv.DictReader(csvfile)
         for row in reader:
             data_obj = {
@@ -29,7 +29,7 @@ def import_funding_rate_data():
             }
             funding_data1.append(data_obj)
 
-    with open('Kucoin Funding History SOLUSDTM Perpetual.csv', mode='r') as csvfile:
+    with open('./fra/Kucoin Funding History SOLUSDTM Perpetual.csv', mode='r') as csvfile:
         reader = csv.DictReader(csvfile)
         for row in reader:
             data_obj = {
@@ -79,19 +79,14 @@ def try_fra_arb(days_in_past=66.7):
 
     funding_rate1, funding_rate2 = import_funding_rate_data()
 
-    # print("funding rate 1: ", funding_rate1[0], funding_rate1[len(funding_rate1)-1], "funding rate 2: ", funding_rate2[0], funding_rate2[len(funding_rate2)-1])
-
     sol_usdt_prices1 = exchange1.fetch_ohlcv("SOL/USDT", timeframe="8h", since=ms_since, limit=data_count)
     sol_usdt_prices2 = exchange2.fetch_ohlcv("SOLUSDTM", timeframe="8h", since=ms_since, limit=data_count)
-
-    # print("prices 1: ", sol_usdt_prices1[0], sol_usdt_prices1[len(sol_usdt_prices1)-1], "prices 2: ", sol_usdt_prices2[0], sol_usdt_prices2[len(sol_usdt_prices2)-1])
 
     # Zip funding rates and prices into one DataFrame with the same timestamps
     exchange1_data = zip_rates_and_prices(funding_rate1, sol_usdt_prices1)
     exchange2_data = zip_rates_and_prices(funding_rate2, sol_usdt_prices2)
 
-    # print(exchange2_data)
-
+    # Strategy simulation:
     # loop through each row
     # check if a position is open
     # if not open, take a 10x long or short position with the exchange with the higher funding rate
@@ -317,24 +312,13 @@ def try_fra_arb(days_in_past=66.7):
                 fee2 = exchange2_position["size"] * exchange2_data["close"][i] * trading_fee
                 cash_usdt2 -= fee2
 
-            # +- ++ -+ --
-            # 0.1 - -0.05 = 0.15 short, long
-            # 0.1 - 0.2 = -0.1 long, short
-            # 0.2 - 0.1 = 0.1 short, long
-            # -0.1 - 0.2 = -0.3 long, short
-            # -0.2 - -0.1 = -0.1 long, short
-            # -0.1 - -0.2 = 0.1 short, long
-
     # Sum the Funding Rate Arbitrage returns
     cum_funding_rate_returns = sum(funding_rate_returns)
     fra_return = cum_funding_rate_returns + cash_usdt1 + cash_usdt2 - starting_cash*2
-    print(f"cum_funding_rate_returns: {cum_funding_rate_returns}; cash_usdt1: {cash_usdt1}; cash_usdt2: {cash_usdt2}; starting_cash: {starting_cash}")
     fra_returns_pct = fra_return / (starting_cash*2)
     annualized_fra_return = (1 + fra_returns_pct) ** (365 / days_in_past) - 1
 
     print(f"FRA Time Period: {len(exchange1_data)/3:.2f} days")
     print(f"Leverage: {leverage}")
     print(f"Trading Fee: {trading_fee*100}%")
-    # print(f"Funding Rate Individual Returns: {funding_rate_returns}")
-    # print(f"Funding Rate Combined Returns: {funding_rate_returns_combined}")
     print(f"Funding Rate Arbitrage Returns: ${fra_return:.2f} | {fra_returns_pct * 100:.2f}% | APY: {annualized_fra_return * 100:.2f}%")
