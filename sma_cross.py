@@ -13,14 +13,10 @@ def try_sma_cross(
     ms_since = int(secs_since.timestamp()) * 1000
 
     # Fetch historical data
-    # exchange = ccxt.binanceusdm()
     ohlcv = exchange.fetch_ohlcv(coin, timeframe="1d", since=ms_since)
     data = pd.DataFrame(
         ohlcv, columns=["timestamp", "open", "high", "low", "close", "volume"]
     )
-
-    # print(ohlcv.__len__())
-    # print(ohlcv[0], ohlcv[1], ohlcv[ohlcv.__len__()-2], ohlcv[ohlcv.__len__()-1])
 
     # Convert timestamp to datetime
     data["timestamp"] = pd.to_datetime(data["timestamp"], unit="ms")
@@ -41,40 +37,21 @@ def try_sma_cross(
             self.crossover = bt.ind.CrossOver(sma1, sma2)
 
             self.diff = bt.ind.NonZeroDifference(sma1, sma2)
-            # self.last_5_diff = bt.ind.SumN(self.diff, period=5)
-
             self.start_value = self.broker.get_cash()
-
             self.daily_values = []
 
         def next(self):
             percent_cash_per_trade = 0.75
             size = int(self.start_value * percent_cash_per_trade / self.data[0])
-            # size = int(self.broker.get_cash() * percent_cash_per_trade / self.data[0])
 
             if self.crossover > 0:
                 self.close()
                 self.buy(size=size)
-                # self.sell(exectype=bt.Order.StopLimit, price=self.data.close[0] * 0.95, size=size)
             elif self.crossover < 0:
                 self.close()
                 self.sell(size=size)
-                # self.buy(exectype=bt.Order.StopLimit, price=self.data.close[0] * 1.05, size=size)
-
-            # print(f'diff: {self.diff[0]}, crossover: {self.crossover[0]}, last_5_diff: {self.last_5_diff[0]}')
-
-            # percent_cash_per_trade = 0.01
-            # percent_cash_per_trade = min(0.1 * abs(self.diff[0]), 0.05)
-            # size = int(self.start_value * percent_cash_per_trade / self.data[0])
-            # if self.diff[0] > 0:
-            #     self.buy(size=size)
-            # elif self.diff[0] < 0:
-            #     self.sell(size=size)
 
             self.daily_values.append(self.broker.getvalue())
-
-            # if self.position.size != 0:
-            #     print(f'{self.position}\nPosition Value: {self.broker.getvalue():.2f}')
 
     # Backtest the strategy
     if mode == "train":
@@ -156,15 +133,6 @@ def optimize_sma_cross(days_in_past=365, mode="default"):
                 print(f"Failed to test {usdt_coin_pair}...")
                 missed_coins.append(usdt_coin_pair)
                 break
-
-        # for param in sma_param_pairs:
-        #     try:
-        #         print(f"\nTesting strategy for {usdc_coin_pair} x {param}...")
-        #         returns_by_coin[f'{usdc_coin_pair} x {param}'] = try_sma_cross(coin=usdc_coin_pair, sma_params={'pfast': param[0], 'pslow': param[1]}, days_in_past=400)
-        #     except:
-        #         print(f'Failed to test {usdc_coin_pair}...')
-        #         missed_coins.append(usdc_coin_pair)
-        #         break
 
     # Sort coins by cumulative returns
     sorted_coins = sorted(

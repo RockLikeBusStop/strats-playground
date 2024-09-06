@@ -6,61 +6,15 @@ import requests
 
 def get_binance_data(symbol="BTC"):
     options_data_url = "https://eapi.binance.com/eapi/v1/ticker"
-    price_data_url = "https://fapi.binance.com/fapi/v1/ticker/price"
 
     # Fetch options data from Binance API
     options_response = requests.get(options_data_url)
     options_data = options_response.json()
 
-    # price_response = requests.get(price_data_url, params={"symbol": "BTCUSDT"})
-    # price_data = price_response.json()["price"]
-
     scenarios_unfiltered = {}
     r = 0.03
     for option in options_data:
         if option["symbol"][:3] == symbol:
-
-        # {
-        #     "symbol": "BTC-240927-45000-C",
-        #     "priceChange": "0",
-        #     "priceChangePercent": "0",
-        #     "lastPrice": "17000",
-        #     "lastQty": "0",
-        #     "open": "17000",
-        #     "high": "17000",
-        #     "low": "17000",
-        #     "volume": "0",
-        #     "amount": "0",
-        #     "bidPrice": "10",
-        #     "askPrice": "0",
-        #     "openTime": 0,
-        #     "closeTime": 0,
-        #     "firstTradeId": 0,
-        #     "tradeCount": 0,
-        #     "strikePrice": "45000",
-        #     "exercisePrice": "59065.46085106"
-        # },
-        # {
-        #     "symbol": "BTC-240927-75000-P",
-        #     "priceChange": "0",
-        #     "priceChangePercent": "0",
-        #     "lastPrice": "16800",
-        #     "lastQty": "1.6",
-        #     "open": "16800",
-        #     "high": "16800",
-        #     "low": "16800",
-        #     "volume": "1.67",
-        #     "amount": "28056",
-        #     "bidPrice": "15875",
-        #     "askPrice": "0",
-        #     "openTime": 1725266157207,
-        #     "closeTime": 1725266157207,
-        #     "firstTradeId": 416,
-        #     "tradeCount": 1,
-        #     "strikePrice": "75000",
-        #     "exercisePrice": "59065.46085106"
-        # }
-
             expiration = datetime.strptime(option["symbol"].split('-')[1], '%y%m%d')
             scenario_name = option["symbol"][:-2]
             option_type = option["symbol"][-1]
@@ -71,7 +25,9 @@ def get_binance_data(symbol="BTC"):
             if option["askPrice"] == None or option["bidPrice"] == None:
                 continue
 
+            # if you've already come across this scenario
             if scenario_name in scenarios_unfiltered:
+                # if you've seen the put already, this is the call. update the call price
                 if option_type == 'C':
                     scenarios_unfiltered[scenario_name][4] = float(option["askPrice"])
                     scenarios_unfiltered[scenario_name][5] = float(option["bidPrice"])
@@ -102,53 +58,6 @@ def get_deribit_data():
 
     options_response = requests.get(f"{base_url}get_book_summary_by_currency?currency=BTC&kind=option")
     options_data = options_response.json()['result']
-    # print(options_data)
-
-#     Example options_data
-#     options_data = [  {
-#     "mid_price": "None",
-#     "estimated_delivery_price": 58144.17,
-#     "volume_usd": 0.0,
-#     "quote_currency": "BTC",
-#     "creation_timestamp": 1725213681632,
-#     "base_currency": "BTC",
-#     "underlying_index": "BTC-28MAR25",
-#     "underlying_price": 61048.04,
-#     "mark_iv": 73.48,
-#     "interest_rate": 0.0,
-#     "volume": 0.0,
-#     "price_change": "None",
-#     "mark_price": 1.63560187,
-#     "open_interest": 2.2,
-#     "ask_price": "None",
-#     "bid_price": "None",
-#     "instrument_name": "BTC-28MAR25-160000-P",
-#     "last": 1.5695,
-#     "low": "None",
-#     "high": "None"
-#   },
-#   {
-#     "mid_price": 0.22975,
-#     "estimated_delivery_price": 58144.17,
-#     "volume_usd": 1467.04,
-#     "quote_currency": "BTC",
-#     "creation_timestamp": 1725213681632,
-#     "base_currency": "BTC",
-#     "underlying_index": "BTC-25OCT24",
-#     "underlying_price": 58748.35,
-#     "mark_iv": 57.75,
-#     "interest_rate": 0.0,
-#     "volume": 0.1,
-#     "price_change": 0.0,
-#     "mark_price": 0.2302342,
-#     "open_interest": 0.3,
-#     "ask_price": 0.2325,
-#     "bid_price": 0.227,
-#     "instrument_name": "BTC-25OCT24-46000-C",
-#     "last": 0.247,
-#     "low": 0.247,
-#     "high": 0.247
-#   }]
 
     scenarios_unfiltered = {}
     r = 0.03
@@ -163,7 +72,9 @@ def get_deribit_data():
         if option["ask_price"] == None or option["bid_price"] == None:
             continue
 
+        # if you've already come across this scenario
         if scenario_name in scenarios_unfiltered:
+            # if you've seen the put already, this is the call. update the call price
             if option_type == 'C':
                 scenarios_unfiltered[scenario_name][4] = option["ask_price"] * stock_price
                 scenarios_unfiltered[scenario_name][5] = option["bid_price"] * stock_price
@@ -171,10 +82,6 @@ def get_deribit_data():
                 scenarios_unfiltered[scenario_name][6] = option["ask_price"] * stock_price
                 scenarios_unfiltered[scenario_name][7] = option["bid_price"] * stock_price
         else:
-            # if expiration date is over 33 days from now, skip it
-            # if (expiration - datetime.now()).days > 33:
-                # continue
-
             t = (expiration - datetime.now()).days
             if option_type == 'C':
                 c_a = option["ask_price"] * stock_price
@@ -194,7 +101,6 @@ def get_deribit_data():
     return scenarios
 
 
-# def calculate_pcpa_return(data):
 def calculate_pcpa_return(exchange):
     if exchange == "deribit":
         data = get_deribit_data()
@@ -257,21 +163,6 @@ def calculate_pcpa_return(exchange):
             })
 
     results_pd = pd.DataFrame(results)
-    # # sort results_pd by Return
-    # results_pd = results_pd.sort_values(by='Return', ascending=False)
-
-    # # add a return_per_day column and sort by that
-    # results_pd['return_per_day'] = results_pd['Return'] / results_pd['Data'].apply(lambda x: x[3])
-    # results_pd = results_pd.sort_values(by='return_per_day', ascending=False)
-
-    # # add a return_delta_strike column, which is return / abs((strike price - stock price)) and sort by that
-    # results_pd['return_delta_strike'] = results_pd['Return'] / abs(results_pd['Data'].apply(lambda x: x[1] - x[0]))
-    # # results_pd = results_pd.sort_values(by='return_delta_strike', ascending=False)
-
-    # add a retuns_pct column
-    # if arb type is sold call, return / (s + p_a - c_b)
-    # if arb type is sold put, return / (c_a + s - p_b)
-
 
     # add a annualized return column
     results_pd['APY (%)'] = ((1 + results_pd['returns_pct']) ** (365 / results_pd['Data'].apply(lambda x: x[3])) - 1) * 100

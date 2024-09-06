@@ -6,7 +6,6 @@ from datetime import datetime, timedelta
 def run_buy_x_pct_dip(start_date=(datetime.now() - timedelta(days=5 * 365)), end_date=datetime.now(), num_years=5, drop_threshold=0.05, ticker='^GSPC'):
     data = yf.download(ticker, start=start_date, end=end_date)
 
-    # Define the strategy
     class BuyXPctDip(bt.Strategy):
         params = (('sma_period', 1), ('drop_threshold', drop_threshold), ('investment_amount', 100_000))
 
@@ -73,19 +72,3 @@ def run_buy_x_pct_dip(start_date=(datetime.now() - timedelta(days=5 * 365)), end
     print(f"Annualized Total Return of S&P 500: {sp500_annualized_return * 100:.2f}%")
 
     return strategy_total_return, sp500_total_return, strategy_annualized_return, sp500_annualized_return
-
-# def main():
-#     num_years = 5
-#     end_date = datetime.now()
-#     start_date = end_date - timedelta(days=num_years * 365)
-#     drop_threshold = 0.15
-#     strategy_total_return, sp500_total_return, strategy_annualized_return, sp500_annualized_return = run_buy_x_pct_dip(start_date, end_date, num_years, drop_threshold)
-
-#     print(f"\nTotal Return of Strategy over {num_years} Years: {strategy_total_return * 100:.2f}%")
-#     print(f"Total Return of S&P 500 over {num_years} Years: {sp500_total_return * 100:.2f}%")
-
-#     print(f"\nAnnualized Total Return of Strategy: {strategy_annualized_return * 100:.2f}%")
-#     print(f"Annualized Total Return of S&P 500: {sp500_annualized_return * 100:.2f}%")
-
-
-# main()

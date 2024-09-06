@@ -26,16 +26,9 @@ def btc_hold_strat_results(days_in_past=365):
     class BuyAndHold(bt.Strategy):
         def start(self):
             self.val_start = self.broker.get_cash()
-            # print(f'Original Portfolio Value: {self.val_start}')
 
         def nextstart(self):
             self.order_target_value(target=self.broker.get_cash())
-            # print(f'Price when buying: {self.data[0]}')
-
-        # def stop(self):
-        # print(f'Final Portfolio Value: {self.broker.getvalue()}')
-        # self.roi = (self.broker.get_value() / self.val_start) - 1.0
-        # print(f'ROI: {self.roi*100:.2f}%')
 
     # Backtest the strategy
     cerebro = bt.Cerebro()
