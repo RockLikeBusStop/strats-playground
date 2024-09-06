@@ -9,6 +9,7 @@ This repository is playground for various trading strategies. The strategies inc
 3. **Funding Rate Arbitrage (FRA)**: Exploits the difference in funding rates between exchanges.
 4. **Put-Call Parity Arbitrage (PCPA)**: Identifies arbitrage opportunities based on put-call parity in options markets.
 5. **ARIMA**: Uses the ARIMA model for time series forecasting and trading. (WIP)
+6. **Buy-X-Pct-Dip**: Buys an asset when the SMA drops by a certain percentage.
 
 ## Files
 
@@ -19,6 +20,7 @@ This repository is playground for various trading strategies. The strategies inc
 - `pcpa.py`: Implements the Put-Call Parity Arbitrage strategy.
 - `arima.py`: Contains the ARIMA forecasting strategy. (WIP)
 - `top_coins.py`: Utility to fetch top cryptocurrencies by market cap and volume.
+- `buy_x_pct_dip.py`: Contains the Buy-X-Pct-Dip strategy.
 
 ## Usage
 
