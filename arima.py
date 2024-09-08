@@ -1,144 +1,146 @@
-import ccxt
-import pandas as pd
 import backtrader as bt
-import empyrical as ep
-from datetime import datetime, timedelta
+import pandas as pd
+import numpy as np
 from statsmodels.tsa.arima.model import ARIMA
+from datetime import datetime, timedelta
+import ccxt
 
-# Build a ARIMA strategy
+# Custom Strategy using ARIMA
 class ARIMAStrategy(bt.Strategy):
     params = (
-            ('p', 1),
-            ('d', 1),
-            ('q', 1),
-            ('window', 30),
-        )
+        ('model_order', (5, 1, 0)),  # ARIMA order (p, d, q)
+        ('lookback', 30),            # Lookback period for ARIMA model training
+        ('forecast_period', 5),      # Forecast period for ARIMA model
+    )
 
     def __init__(self):
-        self.data_close = self.datas[0].close
-        self.order = None
-        self.arima_forecast = None
-
-        self.start_value = self.broker.get_cash()
-
-        self.daily_values = []
+        self.order_percentage = 0.95
+        self.dataclose = self.datas[0].close
+        self.order = None  # To keep track of pending orders
+        self.forecast_values = []
 
     def next(self):
-        self.update_arima_forecast()
-
-        percent_cash_per_trade = 0.1
-        size = int(self.start_value * percent_cash_per_trade / self.data[0])
-
-        if len(self.data_close) < self.params.window:
+        # If we don't have enough data yet, skip this step
+        if len(self.data) < self.params.lookback:
             return
 
-        if self.order or not self.arima_forecast:
-            return
+        # Get the closing prices for the lookback period
+        close_prices = np.array(self.dataclose.get(size=self.params.lookback))
 
-        print(f'ARIMA Forecast: {self.arima_forecast:.2f}, Close: {self.data_close[0]:.2f}')
-        if self.position.size == 0:
-            if self.arima_forecast > self.data_close[0]:
-                # self.close()
-                self.order = self.buy(size=size)
-        else:
-            if self.arima_forecast < self.data_close[0]:
-                # self.close()
-                self.order = self.sell(size=size)
-
-
-        self.daily_values.append(self.broker.getvalue())
-
-        if self.position.size != 0:
-            print(f'{self.position}\nPosition Value: {self.broker.getvalue():.2f}')
-
-    def update_arima_forecast(self):
-        # print(f'ARIMA Params: {self.params.p}, {self.params.d}, {self.params.q}, {self.params.window}')
-        # curr_window = len(self.data_close) if len(self.data_close) - self.params.window < 0 else len(self.data_close) - self.params.window
-        # print(f'Current Window: {curr_window}, Data Length: {len(self.data_close)}')
-        data = []
-        for i in range(self.params.window):
-            # print(f'Deatum: {self.data_close[i]}, {len(self.data_close)}')
-            if i < len(self.data_close):
-                data.append(self.data_close[i])
-
-        # data = self.data_close.get(size=curr_window)
-        # for datum in self.data_close:
-        #     print(f'Datum: {datum}, {len(self.data_close)}')
-        model = ARIMA(data, order=(self.params.p, self.params.d, self.params.q))
+        # Train ARIMA model and forecast
+        model = ARIMA(close_prices, order=self.params.model_order)
         model_fit = model.fit()
-        forecast = model_fit.forecast(steps=1)
-        print(f'ARIMA Forecast1: {forecast[0]}')
-        self.arima_forecast = forecast[0]
+        forecast = model_fit.forecast(steps=self.params.forecast_period)[0]  # Forecasting for the given period
 
+        self.forecast_values.append(forecast)  # Store forecast values for analysis
 
-def try_arima(
-    days_in_past=365, coin="BTC/USDT", exchange=ccxt.binanceusdm(), arima_params=None, mode="default"
-):
-    # Historical data timeframe
+        # Buy/Sell decision based on forecast
+        current_price = self.dataclose[0]
+        if forecast > current_price:  # If forecast is higher, we buy
+            if not self.position:  # Check if no existing position
+                self.order = self.buy(size=self.broker.getcash() * self.order_percentage / current_price)
+        elif forecast < current_price:  # If forecast is lower, we sell
+            if self.position:  # Check if there is an existing position
+                self.order = self.sell(size=self.position.size)
+
+# Data Preparation and Backtesting
+def try_arima(days_in_past=365 , token="BTC"):
     secs_since = datetime.now() - timedelta(days=days_in_past)
     ms_since = int(secs_since.timestamp()) * 1000
 
     # Fetch historical data
-    # exchange = ccxt.binanceusdm()
-    ohlcv = exchange.fetch_ohlcv(coin, timeframe="1d", since=ms_since)
-    data = pd.DataFrame(
+    exchange = ccxt.binance()
+    ohlcv = exchange.fetch_ohlcv(f"{token}/USDT", timeframe="1d", since=ms_since)
+    dataframe = pd.DataFrame(
         ohlcv, columns=["timestamp", "open", "high", "low", "close", "volume"]
     )
 
-    # print(ohlcv.__len__())
-    # print(ohlcv[0], ohlcv[1], ohlcv[ohlcv.__len__()-2], ohlcv[ohlcv.__len__()-1])
+    # Convert timestamp to datetime
+    dataframe["timestamp"] = pd.to_datetime(dataframe["timestamp"], unit="ms")
+    dataframe.set_index("timestamp", inplace=True)
+
+    data = bt.feeds.PandasData(dataname=dataframe)
+
+    # Initialize Cerebro engine
+    cerebro = bt.Cerebro()
+    cerebro.addstrategy(ARIMAStrategy)
+    cerebro.adddata(data)
+    cerebro.broker.setcash(1_000_000)  # Set initial capital
+    cerebro.broker.setcommission(commission=0.001)  # Set commission fee
+
+    # Run the backtest
+    start_value = cerebro.broker.getvalue()
+    print('Starting Portfolio Value: %.2f' % start_value)
+    cerebro.run()
+    end_value = cerebro.broker.getvalue()
+    print('Ending Portfolio Value: %.2f' % end_value)
+
+    total_return = (end_value - start_value) / start_value
+    print('Total Return for %d days: %.2f%%' % (days_in_past, total_return * 100))
+
+    apy = (1 + total_return) ** (365 / days_in_past) - 1
+    print("Days in past: %d" % days_in_past)
+    print('APY: %.2f%%' % (apy * 100))
+
+    # Plot the results
+    cerebro.plot()
+
+def optimize_arima(days_in_past=365 , token="BTC"):
+    lookback = 15
+    forecast_period = 5
+    model_orders  = [(3, 1, 0), (5, 2, 0), (3, 2, 0), (5, 0, 0), (3, 0, 1)]
+    # model_orders  = [(3, 0, 0), (5, 0, 0), (3, 0, 2), (5, 0, 1), (5, 0, 2), (3, 0, 1)]
+    # model_orders  = [(10, 2, 0), (10, 0, 0), (10, 1, 0), (10, 0, 1)]
+
+    secs_since = datetime.now() - timedelta(days=days_in_past)
+    ms_since = int(secs_since.timestamp()) * 1000
+
+    # Fetch historical data
+    exchange = ccxt.binance()
+    ohlcv = exchange.fetch_ohlcv(f"{token}/USDT", timeframe="1d", since=ms_since)
+    dataframe = pd.DataFrame(
+        ohlcv, columns=["timestamp", "open", "high", "low", "close", "volume"]
+    )
 
     # Convert timestamp to datetime
-    data["timestamp"] = pd.to_datetime(data["timestamp"], unit="ms")
-    data.set_index("timestamp", inplace=True)
+    dataframe["timestamp"] = pd.to_datetime(dataframe["timestamp"], unit="ms")
+    dataframe.set_index("timestamp", inplace=True)
 
-    # Split data into training and testing sets
-    split_idx = int(len(data) * 0.8)
-    train_data = data.iloc[:split_idx]
-    test_data = data.iloc[split_idx:]
+    data = bt.feeds.PandasData(dataname=dataframe)
 
-    # Backtest the strategy
-    if mode == "train":
-        data = train_data
-    elif mode == "test":
-        data = test_data
+    returns_by_model_order = {}
 
-    cerebro = bt.Cerebro()
-    datafeed = bt.feeds.PandasData(dataname=data)
-    cerebro.adddata(datafeed)
-    # Add the strategy with custom parameters
-    if arima_params is not None:
-        cerebro.addstrategy(ARIMAStrategy, **arima_params)
-    else:
-        cerebro.addstrategy(ARIMAStrategy)
-    cerebro.broker.setcash(1_000_000)
-    start_value = cerebro.broker.getvalue()
-    arima_strat = cerebro.run()
-    end_value = cerebro.broker.getvalue()
+    # Initialize Cerebro engine
+    for model_order in model_orders:
+        print("\nTesting model order:", model_order, "\n")
+        try:
+            cerebro = bt.Cerebro()
+            cerebro.addstrategy(ARIMAStrategy, model_order=model_order, lookback=lookback, forecast_period=forecast_period)
+            cerebro.adddata(data)
+            cerebro.broker.setcash(1_000_000)  # Set initial capital
+            cerebro.broker.setcommission(commission=0.001)  # Set commission fee
 
-    print(f"\nStart Value: {start_value:.2f}")
-    print(f"End Value: {end_value:.2f}")
+            # Run the backtest
+            start_value = cerebro.broker.getvalue()
+            cerebro.run()
+            end_value = cerebro.broker.getvalue()
 
-    # # Calculate the strategy's performance
-    # returns = arima_strat[0].daily_values
-    # returns_percent = pd.Series(returns).pct_change()
+            total_return = (end_value - start_value) / start_value
+            apy = (1 + total_return) ** (365 / days_in_past) - 1
 
-    # cum_returns = ep.cum_returns(returns_percent).iloc[-1]
-    # annual_return = 0.0 if cum_returns < 0 else ep.annual_return(returns_percent, annualization=365)
-    # # annual_return = ep.annual_return(returns_percent, annualization=365)
+            returns_by_model_order[model_order] = total_return
 
-    # sharpe_ratio = 0.0 if cum_returns <= 0 else ep.sharpe_ratio(returns_percent, annualization=365)
+            print("Testing model order:", model_order)
+            print('Total $ Return: %.2f' % end_value)
+            print('Total Return for %d days: %.2f%%' % (days_in_past, total_return * 100))
+            print('APY: %.2f%%' % (apy * 100))
+            cerebro.plot()
+        except:
+            print("Failed to test model order:", model_order)
 
-    # max_drawdown = ep.max_drawdown(returns_percent)
+    # Sort returns_by_model_order by total return in descending order
+    sorted_returns = dict(sorted(returns_by_model_order.items(), key=lambda item: item[1], reverse=True))
 
-    # print(f"Sharpe Ratio: {sharpe_ratio:.2f}")
-    # print(f"Strategy Returns: {cum_returns * 100:.2f}%")
-    # print(f"Annualized Returns: {annual_return * 100:.2f}%")
-    # print(f"Max Drawdown: {max_drawdown * 100:.2f}%")
-
-    # return {
-    #     "sharpe_ratio": sharpe_ratio,
-    #     "cum_returns": cum_returns,
-    #     "annualized_return": annual_return,
-    #     "max_drawdown": max_drawdown,
-    # }
+    print("\nResults:")
+    for model_order, total_return in sorted_returns.items():
+        print(f"Model Order: {model_order}, Total Return: {total_return*100:.2f}%")

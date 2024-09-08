@@ -3,11 +3,12 @@ from sma_cross import optimize_sma_cross, get_good_sma_results
 from fra.fra_arb import try_fra_arb
 from pcpa import calculate_pcpa_return
 from buy_x_pct_dip import run_buy_x_pct_dip
+from arima import try_arima, optimize_arima
 
 
 def main():
-    print("\nRunning an example of Buy-and-Hold strategy for BTC/USDT...")
-    btc_hold_strat_results(days_in_past=400)
+    # print("\nRunning an example of Buy-and-Hold strategy for BTC/USDT...")
+    # btc_hold_strat_results(days_in_past=400)
 
     # print("Running an example of SMA Crossover strategy optimization...")
     # optimize_sma_cross(days_in_past=400)
@@ -21,6 +22,9 @@ def main():
 
     # print("\nRunning an example of Buy-X-Pct-Dip strategy...")
     # run_buy_x_pct_dip(num_years=5, drop_threshold=0.05, ticker='^GSPC')
+
+    print("\nRunning an example of ARIMA strategy...")
+    optimize_arima(days_in_past=365 , token="SOL")
 
 
 main()
