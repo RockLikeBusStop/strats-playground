@@ -17,6 +17,7 @@ This repository is playground for various trading strategies. The strategies inc
 - `sma_cross.py`: Contains the SMA Crossover strategy implementation.
 - `btc_hold_strat.py`: Implements the Buy-and-Hold strategy for Bitcoin.
 - `fra_arb.py`: Contains the Funding Rate Arbitrage strategy.
+- `safe_leverage_factor.py`: Calculates the safe leverage factor for FRA.
 - `pcpa.py`: Implements the Put-Call Parity Arbitrage strategy.
 - `arima.py`: Contains the ARIMA forecasting strategy.
 - `top_coins.py`: Utility to fetch top cryptocurrencies by market cap and volume.
