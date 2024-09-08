@@ -2,6 +2,7 @@ import ccxt
 import csv
 import pandas as pd
 from datetime import datetime, timedelta
+from fra.safe_leverage_factor import calculate_max_safe_leverage
 
 def import_funding_rate_data():
     # Function to convert the date string to a timestamp in milliseconds
@@ -100,7 +101,8 @@ def try_fra_arb(days_in_past=66.7):
     starting_cash = 50_000
     cash_usdt1 = 50_000
     cash_usdt2 = 50_000
-    leverage = 5
+    leverage1, leverage2 = calculate_max_safe_leverage(print_results=False)
+    leverage = round(min(leverage1, leverage2) - 1, 1)
     exchange1_position = {}
     exchange2_position = {}
     funding_rate_returns = []

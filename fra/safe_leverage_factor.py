@@ -36,17 +36,17 @@ def calculate_top_negative_returns(last_n_days: int = 365, top_n: int = 10) -> p
 
     return top_negative_returns1.reset_index(drop=True), top_negative_returns2.reset_index(drop=True)
 
-def main():
+def calculate_max_safe_leverage(print_results: bool = False):
     returns1, returns2 = calculate_top_negative_returns(last_n_days=365*1.5, top_n=5)
-    print("Binance largest SOL drawdowns in last 1.5 years:")
-    print(returns1)
-    print("\nKuCoin largest SOL drawdowns in last 1.5 years:")
-    print(returns2)
 
     maintenance_margin_rate = 0.05
     safe_max_leverage_factor1 = abs(1 / (returns1['negative_return(%)'].min()/100 - maintenance_margin_rate))
     safe_max_leverage_factor2 = abs(1 / (returns2['negative_return(%)'].min()/100 - maintenance_margin_rate))
-    print("\nSafe maximum leverage factor1: %.2f" % safe_max_leverage_factor1)
-    print("Safe maximum leverage factor2: %.2f" % safe_max_leverage_factor2)
 
-main()
+    if print_results:
+        print(f"Binance largest SOL drawdowns in last 1.5 years:\n{returns1}")
+        print(f"\nKuCoin largest SOL drawdowns in last 1.5 years:\n{returns2}")
+        print(f"\nSafe maximum leverage factor1: %.2f" % safe_max_leverage_factor1)
+        print(f"Safe maximum leverage factor2: %.2f" % safe_max_leverage_factor2)
+
+    return safe_max_leverage_factor1, safe_max_leverage_factor2

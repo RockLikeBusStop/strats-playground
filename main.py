@@ -13,8 +13,8 @@ def main():
     # print("Running an example of SMA Crossover strategy optimization...")
     # optimize_sma_cross(days_in_past=400)
 
-    # print("\nRunning an example of FRA strategy...")
-    # try_fra_arb(days_in_past=66.7)
+    print("\nRunning an example of FRA strategy...")
+    try_fra_arb(days_in_past=66.7)
 
     # print("\nRunning an example of PCPA strategy...")
     # calculate_pcpa_return("deribit")
@@ -23,8 +23,8 @@ def main():
     # print("\nRunning an example of Buy-X-Pct-Dip strategy...")
     # run_buy_x_pct_dip(num_years=5, drop_threshold=0.05, ticker='^GSPC')
 
-    print("\nRunning an example of ARIMA strategy...")
-    optimize_arima(days_in_past=365 , token="SOL")
+    # print("\nRunning an example of ARIMA strategy...")
+    # optimize_arima(days_in_past=365 , token="SOL")
 
 
 main()
