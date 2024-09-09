@@ -40,6 +40,8 @@ python main.py
 - empyrical
 - statsmodels
 - pycoingecko
+- yfinance
+- seaborn
 
 Install the required packages using:
 
