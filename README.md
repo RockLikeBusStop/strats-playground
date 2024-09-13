@@ -10,6 +10,7 @@ This repository is playground for various trading strategies. The strategies inc
 4. **Put-Call Parity Arbitrage (PCPA)**: Identifies arbitrage opportunities based on put-call parity in options markets.
 5. **ARIMA**: Uses the ARIMA model for time series forecasting and trading.
 6. **Buy-X-Pct-Dip**: Buys an asset when the SMA drops by a certain percentage.
+7. **Pairs Trading**: Uses mean reversion of cointegrated pairs to implement pairs trading strategy.
 
 ## Files
 
@@ -22,6 +23,7 @@ This repository is playground for various trading strategies. The strategies inc
 - `arima.py`: Contains the ARIMA forecasting strategy.
 - `top_coins.py`: Utility to fetch top cryptocurrencies by market cap and volume.
 - `buy_x_pct_dip.py`: Contains the Buy-X-Pct-Dip strategy.
+- `pairs_trading.py`: Contains the Pairs Trading strategy.
 
 ## Usage
 
